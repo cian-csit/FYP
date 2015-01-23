@@ -1,33 +1,65 @@
-import me.legrange.mikrotik.ApiConnection;
 import me.legrange.mikrotik.MikrotikApiException;
 
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Properties;
 
-/**
- * Created by Cian on 19/01/2015.
- */
+
 public class Main {
-
-    private static Map<String, Network> networks;
 
     public static void main(String[] args) throws UnknownHostException, MikrotikApiException, InterruptedException{
 
-        networks = new HashMap<>();
-        Router dublin = new Router(InetAddress.getByName("10.10.100.2"));
-        dublin.execute("/ip/address/print");
-        //dublin.begin();
+        Properties properties = new Properties();
+        InputStream in = null;
 
+        try {
+            in = new FileInputStream("config.properties");
+            properties.load(in);
+
+        }catch(IOException e){
+            System.err.println("Config file not found!");
+            return;
+        }
+        finally{
+            if (in != null){
+                try {
+                    in.close();
+                }catch(IOException e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        List<String> routerStrings = Arrays.asList(properties.getProperty("routers").split("\\s*,\\s*"));
+
+        List<Router> routers = new ArrayList<>();
+        for (String s : routerStrings){
+            try {
+                boolean reachable = InetAddress.getByName(s).isReachable(2000);
+                if (reachable) {
+                    System.out.println("Creating router at address: " + s);
+                    routers.add(new Router(InetAddress.getByName(s)));
+                }
+                else{
+                    System.err.println("Router at " + s + " is not reachable.");
+                }
+            }catch(IOException e){
+                e.printStackTrace();
+            }
+        }
+
+        for (Router r : routers) start(r);
     }
 
-    public static Map<String, Network> getNetworks(){
-        return networks;
+    public static void start(Router r) throws MikrotikApiException, InterruptedException{
+        r.connect();
+        r.detectInterfaces();
     }
 
-    public static void addNetwork(String addr, Network network){
-        networks.put(addr, network);
-    }
 }

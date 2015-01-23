@@ -4,39 +4,37 @@ import me.legrange.mikrotik.ResultListener;
 
 import java.util.Map;
 
-/**
- * Created by Cian on 19/01/2015.
- */
 public class RouterInterface {
 
     private String address;
-    private Network network;
 
-    private Router parent;
+    private Router parentRouter;
     private int traffic;
     private String label;
     private String tag;
     private Aggregator aggregator;
+    private int linkSpeed;
 
-    public RouterInterface(String address, String label, Network network){
+    public RouterInterface(String address, String label, Router parentRouter){
         this.address = address;
         this.label = label;
-        this.network = network;
-
+        this.parentRouter = parentRouter;
+        this.aggregator = new Aggregator(parentRouter, linkSpeed, label);
     }
 
 
     public void begin(ApiConnection conn) throws InterruptedException, MikrotikApiException {
+        aggregator.periodicAverage();
         tag = conn.execute("/interface/monitor-traffic interface=" + label,
                 new ResultListener() {
 
                     public void receive(Map<String, String> result) {
-                        System.out.println(result);
+                        //System.out.println(result);
                         int in = Integer.parseInt(result.get("rx-bits-per-second"));
                         int out = Integer.parseInt(result.get("tx-bits-per-second"));
                         traffic = in + out;
                         System.out.println("Total traffic on " + label +": " + (traffic));
-                        aggregator.update(traffic, network);
+                        aggregator.update(traffic);
                     }
 
                     public void error(MikrotikApiException e) {
