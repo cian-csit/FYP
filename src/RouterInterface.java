@@ -15,15 +15,16 @@ public class RouterInterface {
     private Aggregator aggregator;
     private int linkSpeed;
 
-    public RouterInterface(String address, String label, Router parentRouter){
+    public RouterInterface(String address, String label, Router parentRouter, int linkSpeed){
         this.address = address;
         this.label = label;
         this.parentRouter = parentRouter;
+        this.linkSpeed = linkSpeed;
         this.aggregator = new Aggregator(parentRouter, linkSpeed, label);
     }
 
 
-    public void begin(ApiConnection conn) throws InterruptedException, MikrotikApiException {
+    public void begin(ApiConnection conn) throws MikrotikApiException {
         aggregator.periodicAverage();
         tag = conn.execute("/interface/monitor-traffic interface=" + label,
                 new ResultListener() {

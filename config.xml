@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<config>
+	<router>
+		<address>10.10.100.2</address>
+		<username>admin</username>
+		<password></password>
+	</router>
+	<router>
+		<address>10.10.7.3</address>
+		<username>admin</username>
+		<password></password>
+	</router>
+	
+	<link>
+		<address>10.10.100.0/24</address>
+		<bandwidth>100</bandwidth>
+	</link>
+</config>

@@ -5,31 +5,46 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Class which aggregates all traffic data from a particular connection, and periodically adjusts the OSPF cost
+ * based on the traffic.
+ * @author Cian O'Halloran
+ */
 public class Aggregator {
 
     private List<Integer> traffic;
-    private Router parentRouter;
+    private final Router parentRouter;
     private int avgTraffic;
     private final ScheduledExecutorService scheduler;
-    private int linkSpeed;
-    private String interfaceLabel;
+    private final int linkSpeed;
+    private final String interfaceLabel;
 
+    /**
+     * Constructs a newly allocated Aggregator object for the current interface
+     * @param parentRouter The Router object
+     * @param linkSpeed The maximum speed of the link attached to that interface
+     * @param interfaceLabel The label of the interface (ether1, ether2, etc.)
+     */
     public Aggregator(Router parentRouter, int linkSpeed, String interfaceLabel){
         traffic = new ArrayList<>();
         this.parentRouter = parentRouter;
         this.linkSpeed = linkSpeed;
         this.interfaceLabel = interfaceLabel;
         scheduler = Executors.newScheduledThreadPool(1);
-
-        // DEBUG
-        this.linkSpeed = 1;
     }
 
+    /**
+     * Adds a traffic value to the List
+     * @param trafficValue The new value to be added
+     */
     public void update(int trafficValue){
         //System.out.println("Adding value: " + trafficValue + " to aggregator");
         traffic.add(trafficValue);
     }
 
+    /**
+     * Calculates the average of the contents of {@code traffic} every two minutes
+     */
     public void periodicAverage(){
         System.out.println("Starting periodic average on " + interfaceLabel);
         final Runnable averageTask = new Runnable() {
