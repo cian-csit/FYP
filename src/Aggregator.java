@@ -1,6 +1,8 @@
 import me.legrange.mikrotik.MikrotikApiException;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -22,7 +24,7 @@ public class Aggregator {
     /**
      * Constructs a newly allocated Aggregator object for the current interface
      * @param parentRouter The Router object
-     * @param linkSpeed The maximum speed of the link attached to that interface
+     * @param linkSpeed The maximum speed (in Mbps) of the link attached to that interface
      * @param interfaceLabel The label of the interface (ether1, ether2, etc.)
      */
     public Aggregator(Router parentRouter, int linkSpeed, String interfaceLabel){
@@ -38,7 +40,6 @@ public class Aggregator {
      * @param trafficValue The new value to be added
      */
     public void update(int trafficValue){
-        //System.out.println("Adding value: " + trafficValue + " to aggregator");
         traffic.add(trafficValue);
     }
 
@@ -62,8 +63,17 @@ public class Aggregator {
 
                 // Get new cost
                 try {
-                    getNewCost(avgTraffic);
-                }catch (MikrotikApiException | InterruptedException e){
+                    List<Map<String, String>> currentCostRaw = fetchCurrentCost();
+                    int currentCost = Integer.parseInt(currentCostRaw.get(0).get("cost"));
+                    String id = currentCostRaw.get(0).get(".id");
+                    System.out.println(Thread.currentThread().getId() + ": Current cost is: " + currentCost);
+
+                    int newCost = calculateNewCost(avgTraffic, currentCost);
+
+                    if (newCost != 0) {
+                        setNewCost(newCost, id);
+                    }
+                }catch (MikrotikApiException e){
                     e.printStackTrace();
                 }
             }
@@ -71,31 +81,50 @@ public class Aggregator {
         scheduler.scheduleAtFixedRate(averageTask, 10, 10, TimeUnit.SECONDS);
     }
 
-    private void getNewCost(int traffic) throws MikrotikApiException, InterruptedException{
-        // Get current cost
-        List<Map<String, String>> result = parentRouter.execute("/routing/ospf/interface/print where interface=" + interfaceLabel);
-        int currentCost = Integer.parseInt(result.get(0).get("cost"));
+    /**
+     * Calculates the new cost of the interface based on the traffic
+     * @param rawTraffic The traffic value in bits per second
+     * @param currentCost The current OSPF cost on the interface
+     * @throws MikrotikApiException If an invalid command is sent to the router
+     */
+    private int calculateNewCost(int rawTraffic, int currentCost) throws MikrotikApiException {
+        double traffic = rawTraffic / 100000.0; // Convert bits to Megabits (Mb)
 
-        System.out.println("Current cost is: " + currentCost);
-
-        int newCost;
-
-        if ((traffic / (double)linkSpeed) > 0.8 ){
-            newCost = currentCost + 10;
+        if ((traffic / linkSpeed) > 0.8 ){
             System.out.println(interfaceLabel + ": Incrementing cost");
-            setNewCost(newCost);
+            return currentCost + 10;
         }
-        else if (((traffic / (double)linkSpeed) < 0.4) && (currentCost > 10)){
-            newCost = currentCost - 10;
+        else if (((traffic / linkSpeed) < 0.4) && (currentCost > 10)){
             System.out.println(interfaceLabel + ": Decrementing cost");
-            setNewCost(newCost);
+            return currentCost - 10;
         }
         else{
             System.out.println(interfaceLabel + ": Making no change");
+            return 0;
         }
     }
 
-    private void setNewCost(int cost) throws MikrotikApiException, InterruptedException{
-        parentRouter.execute("/routing/ospf/interface/add interface=" + interfaceLabel + " network-type=broadcast cost=" + cost);
+    /**
+     * Fetches the OSPF data for the current interface
+     * @return The raw un-formatted OSPF data
+     * @throws MikrotikApiException If an invalid command is sent to the router
+     */
+    private List<Map<String, String>> fetchCurrentCost() throws MikrotikApiException{
+        return parentRouter.execute("/routing/ospf/interface/print where interface=" + interfaceLabel);
+    }
+
+    /**
+     * Sets the new OSPF cost for the current interface
+     * @param cost The new OSPF cost
+     * @param id The id corresponding to the current interface
+     * @throws MikrotikApiException If an invalid command is sent to the router
+     */
+    private void setNewCost(int cost, String id) throws MikrotikApiException {
+        try {
+            parentRouter.execute("/routing/ospf/interface/set .id=" + id + " cost=" + cost);
+        }catch(MikrotikApiException e){
+            System.out.println("Interface is set as dynamic. Adding non-dynamic interface... ");
+            parentRouter.execute("/routing/ospf/interface/add interface=" + interfaceLabel + " network-type=broadcast cost=" + cost);
+        }
     }
 }

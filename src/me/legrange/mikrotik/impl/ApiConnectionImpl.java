@@ -1,5 +1,12 @@
 package me.legrange.mikrotik.impl;
 
+import me.legrange.mikrotik.ApiConnection;
+import me.legrange.mikrotik.ApiConnectionException;
+import me.legrange.mikrotik.MikrotikApiException;
+import me.legrange.mikrotik.ResultListener;
+
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,12 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
-import javax.net.ssl.SSLSocket;
-import javax.net.ssl.SSLSocketFactory;
-import me.legrange.mikrotik.ApiConnection;
-import me.legrange.mikrotik.ApiConnectionException;
-import me.legrange.mikrotik.MikrotikApiException;
-import me.legrange.mikrotik.ResultListener;
 
 /**
  * The Mikrotik API connection implementation. This is the class used to connect

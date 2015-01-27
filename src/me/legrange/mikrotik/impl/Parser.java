@@ -1,9 +1,10 @@
 package me.legrange.mikrotik.impl;
 
+import me.legrange.mikrotik.impl.Scanner.Token;
+
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
-import me.legrange.mikrotik.impl.Scanner.Token;
 
 /**
  * Parse the pseudo-command line into command objects. 

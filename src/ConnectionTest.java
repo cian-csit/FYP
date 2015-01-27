@@ -4,7 +4,6 @@
 
 import me.legrange.mikrotik.ApiConnection;
 import me.legrange.mikrotik.MikrotikApiException;
-import me.legrange.mikrotik.ResultListener;
 
 import java.util.List;
 import java.util.Map;
@@ -24,10 +23,17 @@ public class ConnectionTest {
         con = ApiConnection.connect(host);
         con.login(username, password);
 
-        List<Map<String, String>> result = con.execute("/ip/route/print");
+        con.execute("/routing/ospf/interface/set .id=*6" + " cost=" + 33);
+
+        List<Map<String, String>> result = con.execute("/routing/ospf/interface/print");
         for (Map<String,String> r : result) {
             System.out.println(r);
         }
+
+//        List<Map<String, String>> result = con.execute("/ip/route/print");
+//        for (Map<String,String> r : result) {
+//            System.out.println(r);
+//        }
 
 //        String tag = con.execute("/interface/monitor-traffic interface=ether6",
 //                new ResultListener() {
