@@ -37,6 +37,7 @@ public class RouterInterface {
      */
     public void setInitialCost(){
         int cost = 100 / bandwidth;
+        if (cost < 10) cost = 10;
         try {
             parentRouter.execute("/routing/ospf/interface/add interface=" + label + " network-type=broadcast cost=" + cost);
         }catch(MikrotikApiException e){
@@ -58,7 +59,7 @@ public class RouterInterface {
                         int in = Integer.parseInt(result.get("rx-bits-per-second"));
                         int out = Integer.parseInt(result.get("tx-bits-per-second"));
                         traffic = in + out;
-                        System.out.println(Thread.currentThread().getId() + parentIdentity + ": Total traffic on " + label +": " + (traffic));
+                        System.out.println(parentIdentity + ": Total traffic on " + label +": " + (traffic));
                         aggregator.update(traffic);
                     }
 

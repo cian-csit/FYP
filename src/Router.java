@@ -42,6 +42,7 @@ public class Router {
         System.out.println(interfaceDetails);
         for (Map<String, String> singleInterface : interfaceDetails){
             RouterInterface r = createInterface(singleInterface);
+            if (r == null) break;
             r.setInitialCost();
             r.listen(conn);
         }
@@ -66,6 +67,8 @@ public class Router {
         String interfaceLabel = interfaceResult.get("interface");
 
         int bandwidth = getBandwidth(interfaceAddress);
+        if (bandwidth == -1) return null;
+
         System.out.println(identity + ": Adding interface object for " + interfaceAddress + " on interface "
                 + interfaceLabel );
         return new RouterInterface(interfaceLabel, this, identity, bandwidth);
@@ -90,9 +93,9 @@ public class Router {
                 return entry.getValue();
             }
         }
-
-        // No matching bandwidth value found. Throw exception.
-        throw new IllegalArgumentException("No valid network for " + address + " found in config file!");
+        // No matching bandwidth value found.
+        System.err.println("No valid network for " + address + " found in config file! Assuming client network...");
+        return -1;
     }
 
     /**
@@ -107,9 +110,8 @@ public class Router {
             connect();
         }
         System.out.println("Executing " + cmd);
-        List<Map<String, String>> result = conn.execute(cmd);
-        System.out.println(result);
-        return result;
+
+        return conn.execute(cmd);
     }
 
     /**
@@ -133,6 +135,10 @@ public class Router {
         List<Map<String, String>> result = execute("/system/identity/print");
         identity = result.get(0).get("name");
         System.out.println("Setting identity as: " + identity);
+    }
+
+    public String getIdentity(){
+        return identity;
     }
 
 }

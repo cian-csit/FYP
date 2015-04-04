@@ -10,6 +10,11 @@
 		<username>admin</username>
 		<password></password>
 	</router>
+	<router>
+		<address>10.10.6.4</address>
+		<username>admin</username>
+		<password></password>
+	</router>
 	
 	
 	
@@ -18,33 +23,71 @@
 	
 	
 	
+	<!--NETWORK LINKS-->
+	
+	<!--GALWAY - SLIGO-->
 	<link>
-		<address>10.10.100.0/24</address>
-		<bandwidth>100</bandwidth>
+		<address>10.10.1.0/24</address>
+		<bandwidth>10</bandwidth>
 	</link>
 	
+	<!--SLIGO - BELFAST-->
 	<link>
 		<address>10.10.2.0/24</address>
-		<bandwidth>100</bandwidth>
+		<bandwidth>10</bandwidth>
 	</link>
 	
+	<!--ATHLONE - SLIGO-->
+	<link>
+		<address>10.10.3.0/24</address>
+		<bandwidth>10</bandwidth>
+	</link>
+	
+	<!--ATHLONE - BELFAST-->
 	<link>
 		<address>10.10.4.0/24</address>
-		<bandwidth>100</bandwidth>
+		<bandwidth>10</bandwidth>
 	</link>
 	
+	<!--GALWAY - ATHLONE-->
+	<link>
+		<address>10.10.5.0/24</address>
+		<bandwidth>10</bandwidth>
+	</link>
+	
+	<!--DUBLIN - ATHLONE-->
 	<link>
 		<address>10.10.6.0/24</address>
-		<bandwidth>100</bandwidth>
+		<bandwidth>10</bandwidth>
 	</link>
 	
+	<!--DUBLIN - BELFAST-->
 	<link>
 		<address>10.10.7.0/24</address>
-		<bandwidth>100</bandwidth>
+		<bandwidth>10</bandwidth>
 	</link>
 	
+	<!--DUBLIN - WATERFORD-->
 	<link>
 		<address>10.10.8.0/24</address>
-		<bandwidth>100</bandwidth>
+		<bandwidth>10</bandwidth>
+	</link>
+	
+	<!--CORK - WATERFORD-->
+	<link>
+		<address>10.10.9.0/24</address>
+		<bandwidth>10</bandwidth>
+	</link>
+	
+	<!--CORK - LIMERICK-->
+	<link>
+		<address>10.10.10.0/24</address>
+		<bandwidth>10</bandwidth>
+	</link>
+	
+	<!--LIMERICK - GALWAY-->
+	<link>
+		<address>10.10.11.0/24</address>
+		<bandwidth>10</bandwidth>
 	</link>
 </config>

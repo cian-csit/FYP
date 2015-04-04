@@ -16,10 +16,14 @@ public class Aggregator {
 
     private List<Integer> traffic;
     private final Router parentRouter;
+    private final String parentRouterId;
     private int avgTraffic;
     private final ScheduledExecutorService scheduler;
     private final int linkSpeed;
     private final String interfaceLabel;
+    private int minutesSinceLastChange;
+    private final int checkPeriod = 1;
+    private final int threshold = 0;
 
     /**
      * Constructs a newly allocated Aggregator object for the current interface
@@ -32,7 +36,9 @@ public class Aggregator {
         this.parentRouter = parentRouter;
         this.linkSpeed = linkSpeed;
         this.interfaceLabel = interfaceLabel;
+        parentRouterId = parentRouter.getIdentity();
         scheduler = Executors.newScheduledThreadPool(1);
+        minutesSinceLastChange = 0;
     }
 
     /**
@@ -50,6 +56,7 @@ public class Aggregator {
         System.out.println("Starting periodic average on " + interfaceLabel);
         final Runnable averageTask = new Runnable() {
             public void run() {
+                minutesSinceLastChange += checkPeriod;
                 int sum = 0, avg = 0;
                 if (!traffic.isEmpty()) {
                     for (int value : traffic) {
@@ -66,11 +73,11 @@ public class Aggregator {
                     List<Map<String, String>> currentCostRaw = fetchCurrentCost();
                     int currentCost = Integer.parseInt(currentCostRaw.get(0).get("cost"));
                     String id = currentCostRaw.get(0).get(".id");
-                    System.out.println(Thread.currentThread().getId() + ": Current cost is: " + currentCost);
 
                     int newCost = calculateNewCost(avgTraffic, currentCost);
 
-                    if (newCost != 0) {
+                    if (newCost != 0 && minutesSinceLastChange >= threshold) { // Changing cost
+                        minutesSinceLastChange = 0;
                         setNewCost(newCost, id);
                     }
                 }catch (MikrotikApiException e){
@@ -78,7 +85,7 @@ public class Aggregator {
                 }
             }
         };
-        scheduler.scheduleAtFixedRate(averageTask, 10, 10, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(averageTask, checkPeriod, checkPeriod, TimeUnit.MINUTES);
     }
 
     /**
@@ -88,18 +95,22 @@ public class Aggregator {
      * @throws MikrotikApiException If an invalid command is sent to the router
      */
     private int calculateNewCost(int rawTraffic, int currentCost) throws MikrotikApiException {
-        double traffic = rawTraffic / 100000.0; // Convert bits to Megabits (Mb)
+        double traffic = rawTraffic / 1000000.0; // Convert bits to Megabits (Mb)
+        double usedBandwidth = (traffic / linkSpeed) * 100 ; // Percentage of bandwidth used
+        usedBandwidth = Math.round(usedBandwidth * 100) / 100; // Round to two decimal places
 
-        if ((traffic / linkSpeed) > 0.8 ){
-            System.out.println(interfaceLabel + ": Incrementing cost");
+        System.out.print(parentRouterId + ":" + interfaceLabel + ": Traffic at " + traffic + "Mbps (" + usedBandwidth + "%) - ");
+
+        if (usedBandwidth > 80 ){
+            System.out.println("Incrementing cost from " + currentCost + " to " + (currentCost + 10));
             return currentCost + 10;
         }
-        else if (((traffic / linkSpeed) < 0.4) && (currentCost > 10)){
-            System.out.println(interfaceLabel + ": Decrementing cost");
+        else if ((usedBandwidth < 40) && (currentCost > 10)){
+            System.out.println("Decrementing cost from " + currentCost + " to " + (currentCost - 10));
             return currentCost - 10;
         }
         else{
-            System.out.println(interfaceLabel + ": Making no change");
+            System.out.println("Making no change");
             return 0;
         }
     }
