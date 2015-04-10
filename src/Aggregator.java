@@ -22,8 +22,8 @@ public class Aggregator {
     private final int linkSpeed;
     private final String interfaceLabel;
     private int minutesSinceLastChange;
-    private final int checkPeriod = 1;
-    private final int threshold = 0;
+    private final int checkPeriod = 2; // How often to check average traffic
+    private final int threshold = 5;   // Period to wait between cost changes
 
     /**
      * Constructs a newly allocated Aggregator object for the current interface
@@ -54,35 +54,35 @@ public class Aggregator {
      */
     public void periodicAverage(){
         System.out.println("Starting periodic average on " + interfaceLabel);
-        final Runnable averageTask = new Runnable() {
-            public void run() {
-                minutesSinceLastChange += checkPeriod;
-                int sum = 0, avg = 0;
-                if (!traffic.isEmpty()) {
-                    for (int value : traffic) {
-                        sum += value;
-                    }
-                    // Don't need double precision, so don't cast to double.
-                    avg = sum/traffic.size();
+        final Runnable averageTask = () -> {
+            minutesSinceLastChange += checkPeriod;
+            int sum = 0, avg = 0;
+            // Calculate average traffic
+            if (!traffic.isEmpty()) {
+                for (int value : traffic) {
+                    sum += value;
                 }
-                avgTraffic = avg;
-                traffic = new ArrayList<>();
+                // Don't need double precision, so don't cast to double.
+                avg = sum/traffic.size();
+            }
+            avgTraffic = avg;
+            traffic = new ArrayList<>();
 
-                // Get new cost
-                try {
-                    List<Map<String, String>> currentCostRaw = fetchCurrentCost();
-                    int currentCost = Integer.parseInt(currentCostRaw.get(0).get("cost"));
-                    String id = currentCostRaw.get(0).get(".id");
+            // Get new cost
+            try {
+                List<Map<String, String>> currentCostRaw = fetchCurrentCost();
+                int currentCost = Integer.parseInt(currentCostRaw.get(0).get("cost"));
+                String id = currentCostRaw.get(0).get(".id");
 
-                    int newCost = calculateNewCost(avgTraffic, currentCost);
+                int newCost = calculateNewCost(avgTraffic, currentCost);
 
-                    if (newCost != 0 && minutesSinceLastChange >= threshold) { // Changing cost
-                        minutesSinceLastChange = 0;
-                        setNewCost(newCost, id);
-                    }
-                }catch (MikrotikApiException e){
-                    e.printStackTrace();
+                // Change cost if it hasn't been changed recently
+                if (newCost != 0 && minutesSinceLastChange >= threshold) {
+                    minutesSinceLastChange = 0;
+                    setNewCost(newCost, id);
                 }
+            }catch (MikrotikApiException e){
+                e.printStackTrace();
             }
         };
         scheduler.scheduleAtFixedRate(averageTask, checkPeriod, checkPeriod, TimeUnit.MINUTES);
@@ -105,9 +105,13 @@ public class Aggregator {
             System.out.println("Incrementing cost from " + currentCost + " to " + (currentCost + 10));
             return currentCost + 10;
         }
-        else if ((usedBandwidth < 40) && (currentCost > 10)){
+        else if (usedBandwidth < 30 && currentCost > 10){
             System.out.println("Decrementing cost from " + currentCost + " to " + (currentCost - 10));
             return currentCost - 10;
+        }
+        else if (usedBandwidth < 30 && currentCost < 10){
+            System.out.println("Cost already at minimum. Making no change");
+            return 0;
         }
         else{
             System.out.println("Making no change");
